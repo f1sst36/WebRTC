@@ -15,7 +15,8 @@ const WebRTCActions = Object.freeze({
 })
 
 const database = {
-    rooms: [1, 2, 3]
+    rooms: [1, 2, 3],
+    usersOnline: {}
 }
 
 io.on('connection', (socket) => {
@@ -29,13 +30,23 @@ io.on('connection', (socket) => {
         io.emit(WebRTCActions.ROOM_HAS_CREATED, roomId)
     })
 
-    socket.on(WebRTCActions.JOIN_TO_CHANNEL, (data) => {
-        socket.broadcast.emit(WebRTCActions.USER_WANT_TO_JOIN, data)
+    socket.on(WebRTCActions.JOIN_TO_CHANNEL, (offerDescription, socketId) => {
+        console.log('JOIN_TO_CHANNEL socketId')
+        if(!database.usersOnline.hasOwnProperty(socketId)) {
+            database.usersOnline[socketId] = {
+                offerDescription
+            }
+        }
+        socket.broadcast.emit(WebRTCActions.USER_WANT_TO_JOIN, offerDescription)
     })
 
     socket.on('answer', (data) => {
         console.log('answer event')
         socket.broadcast.emit('answer2', data)
+    })
+
+    socket.on('ice-candidate', (data) => {
+        socket.broadcast.emit('new-ice-candidate', data)
     })
 })
 
