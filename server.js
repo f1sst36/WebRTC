@@ -37,12 +37,18 @@ io.on('connection', (socket) => {
                 offerDescription
             }
         }
+
         socket.broadcast.emit(WebRTCActions.USER_WANT_TO_JOIN, offerDescription)
     })
+    //
+    // socket.on('answer', (data) => {
+    //     console.log('answer event')
+    //     socket.broadcast.emit('answer2', data)
+    // })
 
-    socket.on('answer', (data) => {
-        console.log('answer event')
-        socket.broadcast.emit('answer2', data)
+    socket.on('TO_JOINED_USER', (answer) => {
+        // должен отсылаться только одному юзеру (который заходит в чат)
+        socket.broadcast.emit('ANSWER_TO_NEW_USER', answer)
     })
 
     socket.on('ice-candidate', (data) => {

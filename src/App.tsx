@@ -6,7 +6,6 @@ import {useWebRTC} from "./hooks/useWebRTC";
 function App() {
     const video1 = useRef<HTMLVideoElement>(null)
     const video2 = useRef<HTMLVideoElement>(null)
-    const temp = useRef<boolean>(false)
     const [iceCandidates, setIceCandidates] = useState<RTCIceCandidate[]>([])
 
     const [rooms, setRooms] = useState<number[]>([])
@@ -28,9 +27,12 @@ function App() {
                 }
             })
             stream.getTracks().forEach(track => {
+                console.log('TRACK', track)
                 peerConnection.addTrack(track, stream)
             })
             video1.current!.srcObject = stream
+
+            console.log('iceCandidates', iceCandidates)
         },
         onTrack: (e) => {
             console.log('iceCandidates', iceCandidates)
@@ -39,12 +41,7 @@ function App() {
         },
         onMessage: (e) => console.log('onMessage', e.data),
         onIceCandidate: async (e, sessionDescription) => {
-            console.log('onIceCandidate event.candidate', e.candidate)
-
-            if (sessionDescription?.type === 'answer' && !temp.current) {
-                temp.current = true
-                socket.emit('answer', sessionDescription)
-            }
+            console.log('onIceCandidate')
 
             if (e.candidate) {
                 setIceCandidates([...iceCandidates, e.candidate])
@@ -66,20 +63,21 @@ function App() {
             setRooms(data)
         })
 
-        socket.on(WebRTCActions.USER_WANT_TO_JOIN, async (data) => {
+        socket.on(WebRTCActions.USER_WANT_TO_JOIN, async (offer) => {
             console.log('USER_WANT_TO_JOIN')
-            await setRemoteDescription(data)
-            await setAnswerToLocalDescription()
+            await setRemoteDescription(offer)
+            const answer = await setAnswerToLocalDescription()
+            socket.emit('TO_JOINED_USER', answer)
         })
 
-        socket.on('answer2', async (data) => {
-            console.log('answer2')
-            await setRemoteDescription(data)
+        socket.on('ANSWER_TO_NEW_USER', async (answer) => {
+            console.log('ANSWER_TO_NEW_USER')
+            await setRemoteDescription(answer)
         })
 
         socket.on('new-ice-candidate', async (data: string) => {
             const candidate = JSON.parse(data)
-            console.log('new-ice-candidate')
+            console.log('new-ice-candidate', candidate)
             await getPeerConnection().addIceCandidate(new RTCIceCandidate(candidate))
             console.log(getPeerConnection())
         })
@@ -94,13 +92,11 @@ function App() {
     }
 
     const joinToRoom = async () => {
-        temp.current = true
         const offer = await setOfferToLocalDescription()
         socket.emit(WebRTCActions.JOIN_TO_CHANNEL, offer, socket.id)
     }
 
     const sendTestMessage = () => {
-        console.log('iceCandidates', iceCandidates)
         sendMessage('some test text ' + Math.random())
     }
 
@@ -112,6 +108,11 @@ function App() {
                     return <li key={room}>{room}
                         <button onClick={() => joinToRoom()}>Join</button>
                     </li>
+                })}
+            </ul>
+            <ul>
+                {iceCandidates.map((candidate, index) => {
+                    return <li key={index}>{candidate.candidate}</li>
                 })}
             </ul>
             <button onClick={sendTestMessage}>Send</button>
