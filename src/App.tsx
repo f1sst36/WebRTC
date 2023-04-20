@@ -20,7 +20,7 @@ function App() {
         onOpen: async (peerConnection, remotePeerConnections) => {
             console.log('WEBRTC IS OPENED')
             const stream = await navigator.mediaDevices.getUserMedia({
-                audio: false,
+                audio: true,
                 video: {
                     width: 1280,
                     height: 720,
@@ -31,11 +31,9 @@ function App() {
                 peerConnection.addTrack(track, stream)
             })
             video1.current!.srcObject = stream
-
-            console.log('iceCandidates', iceCandidates)
+            video1.current!.volume = 0
         },
         onTrack: (e) => {
-            console.log('iceCandidates', iceCandidates)
             console.log('peerConnection.ontrack', e.streams)
             video2.current!.srcObject = e.streams[0]
         },
