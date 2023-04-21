@@ -1,0 +1,18 @@
+.screen {
+  width: 100%;
+  height: 100%;
+  position: relative;
+
+  .localVideo {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    height: 30%;
+    z-index: 1;
+  }
+
+  .remoteVideo {
+    width: 100%;
+    height: 100%;
+  }
+}

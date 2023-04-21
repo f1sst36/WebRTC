@@ -1,0 +1,17 @@
+.chat {
+  .messages {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 8px;
+    list-style-type: none;
+    padding: unset;
+    margin: unset;
+    max-height: 400px;
+    overflow-y: auto;
+
+    .message {
+      padding: 10px;
+      background-color: aliceblue;
+    }
+  }
+}

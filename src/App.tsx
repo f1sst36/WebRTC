@@ -2,11 +2,15 @@ import {socket} from './services/socket'
 import {useEffect, useRef, useState} from "react";
 import {WebRTCActions} from "./enums/webRTC";
 import {useWebRTC} from "./hooks/useWebRTC";
+import {Chat} from "./components/Chat/Chat";
+import {Message} from "./types/chat";
+import {VideoScreen} from "./components/VideoScreen/VideoScreen";
 
 function App() {
-    const video1 = useRef<HTMLVideoElement>(null)
-    const video2 = useRef<HTMLVideoElement>(null)
     const [iceCandidates, setIceCandidates] = useState<RTCIceCandidate[]>([])
+    const [messages, setMessages] = useState<Message[]>([])
+    const [localStream, setLocalStream] = useState<MediaStream | null>(null)
+    const [remoteStreams, setRemoteStreams] = useState<MediaStream[]>([])
 
     const [rooms, setRooms] = useState<number[]>([])
     const {
@@ -15,9 +19,9 @@ function App() {
         setRemoteDescription,
         sendMessage,
         closeConnection,
-        getPeerConnection
+        setIceCandidate
     } = useWebRTC({
-        onOpen: async (peerConnection, remotePeerConnections) => {
+        onOpen: async (peerConnection) => {
             console.log('WEBRTC IS OPENED')
             const stream = await navigator.mediaDevices.getUserMedia({
                 audio: true,
@@ -30,20 +34,17 @@ function App() {
                 console.log('TRACK', track)
                 peerConnection.addTrack(track, stream)
             })
-            video1.current!.srcObject = stream
-            video1.current!.volume = 0
+            setLocalStream(stream)
         },
         onTrack: (e) => {
             console.log('peerConnection.ontrack', e.streams)
-            video2.current!.srcObject = e.streams[0]
+            setRemoteStreams(p => [...p, ...e.streams])
         },
-        onMessage: (e) => console.log('onMessage', e.data),
+        onMessage: (e) => setMessages(p => [JSON.parse(e.data), ...p]),
         onIceCandidate: async (e, sessionDescription) => {
-            console.log('onIceCandidate')
-
             if (e.candidate) {
                 setIceCandidates([...iceCandidates, e.candidate])
-                socket.emit('ice-candidate', JSON.stringify(e.candidate))
+                socket.emit(WebRTCActions.ICE_CANDIDATE, JSON.stringify(e.candidate))
             }
         }
     })
@@ -65,19 +66,21 @@ function App() {
             console.log('USER_WANT_TO_JOIN')
             await setRemoteDescription(offer)
             const answer = await setAnswerToLocalDescription()
-            socket.emit('TO_JOINED_USER', answer)
+            socket.emit(WebRTCActions.TO_JOINED_USER, answer)
         })
 
-        socket.on('ANSWER_TO_NEW_USER', async (answer) => {
+        socket.on(WebRTCActions.ANSWER_TO_NEW_USER, async (answer) => {
             console.log('ANSWER_TO_NEW_USER')
-            await setRemoteDescription(answer)
+            try {
+                await setRemoteDescription(answer)
+            } catch(e) {
+                console.log(e)
+            }
         })
 
-        socket.on('new-ice-candidate', async (data: string) => {
+        socket.on(WebRTCActions.NEW_ICE_CANDIDATE, async (data: string) => {
             const candidate = JSON.parse(data)
-            console.log('new-ice-candidate', candidate)
-            await getPeerConnection().addIceCandidate(new RTCIceCandidate(candidate))
-            console.log(getPeerConnection())
+            await setIceCandidate(candidate)
         })
 
         return () => {
@@ -94,8 +97,9 @@ function App() {
         socket.emit(WebRTCActions.JOIN_TO_CHANNEL, offer, socket.id)
     }
 
-    const sendTestMessage = () => {
-        sendMessage('some test text ' + Math.random())
+    const sendMessageToChat = (message: string) => {
+        setMessages(p => [JSON.parse(message), ...p])
+        sendMessage(message)
     }
 
     return (
@@ -113,12 +117,10 @@ function App() {
                     return <li key={index}>{candidate.candidate}</li>
                 })}
             </ul>
-            <button onClick={sendTestMessage}>Send</button>
             <button onClick={createNewRoom}>Create new room</button>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
-                <video style={{ width: '100%' }} ref={video1} autoPlay></video>
-                <video style={{ width: '100%' }} ref={video2} autoPlay></video>
-            </div>
+
+            {localStream && <VideoScreen localStream={localStream} remoteStreams={remoteStreams}/>}
+            <Chat messages={messages} sendMessage={sendMessageToChat}/>
         </div>
     )
 }

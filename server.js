@@ -11,7 +11,11 @@ const WebRTCActions = Object.freeze({
     ROOM_HAS_CREATED: 'roomHasCreated',
     ALL_ROOMS: 'allRooms',
     JOIN_TO_CHANNEL: 'joinToChannel',
-    USER_WANT_TO_JOIN: 'userWantToJoin'
+    USER_WANT_TO_JOIN: 'userWantToJoin',
+    TO_JOINED_USER: 'TO_JOINED_USER',
+    ANSWER_TO_NEW_USER: 'ANSWER_TO_NEW_USER',
+    NEW_ICE_CANDIDATE: 'new-ice-candidate',
+    ICE_CANDIDATE: 'ice-candidate'
 })
 
 const database = {
@@ -46,13 +50,14 @@ io.on('connection', (socket) => {
     //     socket.broadcast.emit('answer2', data)
     // })
 
-    socket.on('TO_JOINED_USER', (answer) => {
+    socket.on(WebRTCActions.TO_JOINED_USER, (answer) => {
         // должен отсылаться только одному юзеру (который заходит в чат)
-        socket.broadcast.emit('ANSWER_TO_NEW_USER', answer)
+        console.log('broadcast ANSWER_TO_NEW_USER')
+        socket.broadcast.emit(WebRTCActions.ANSWER_TO_NEW_USER, answer)
     })
 
-    socket.on('ice-candidate', (data) => {
-        socket.broadcast.emit('new-ice-candidate', data)
+    socket.on(WebRTCActions.ICE_CANDIDATE, (data) => {
+        socket.broadcast.emit(WebRTCActions.NEW_ICE_CANDIDATE, data)
     })
 })
 

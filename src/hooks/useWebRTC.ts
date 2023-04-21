@@ -1,7 +1,7 @@
 import {useEffect, useRef} from "react";
 
 type Params = {
-    onOpen: (peerConnection: RTCPeerConnection, remotePeerConnections: RTCPeerConnection[]) => any,
+    onOpen: (peerConnection: RTCPeerConnection) => any,
     onMessage: (e: MessageEvent<any>) => any,
     onIceCandidate: (e: RTCPeerConnectionIceEvent, sessionDescription: RTCSessionDescription | null) => any,
     onTrack: (e: RTCTrackEvent) => any
@@ -18,11 +18,6 @@ export const useWebRTC = (params: Params) => {
         return peerConnection.current
     }
 
-    const getRemotePeerConnections = (): RTCPeerConnection[] => {
-        if (!remotePeerConnections.current) throw new Error('Remote peer connections is null')
-        return remotePeerConnections.current
-    }
-
     const getDataChannel = (): RTCDataChannel => {
         if (!dataChannel.current) throw new Error('Data channel is null')
         return dataChannel.current
@@ -33,7 +28,7 @@ export const useWebRTC = (params: Params) => {
         peerConnection.current = new RTCPeerConnection({iceServers})
         dataChannel.current = getPeerConnection().createDataChannel(params.dataChannelLabel ?? 'data-channel-label')
 
-        getDataChannel().onopen = () => params.onOpen(getPeerConnection(), getRemotePeerConnections())
+        getDataChannel().onopen = () => params.onOpen(getPeerConnection())
         getDataChannel().onmessage = e => params.onMessage(e)
         getPeerConnection().onicecandidate = e => {
             params.onIceCandidate(e, getPeerConnection().localDescription)
@@ -71,12 +66,16 @@ export const useWebRTC = (params: Params) => {
         getDataChannel().send(message)
     }
 
+    const setIceCandidate = async (candidate: any) => {
+        await getPeerConnection().addIceCandidate(new RTCIceCandidate(candidate))
+    }
+
     return {
         setOfferToLocalDescription,
         setAnswerToLocalDescription,
         setRemoteDescription,
         closeConnection,
         sendMessage,
-        getPeerConnection
+        setIceCandidate
     } as const
 }
