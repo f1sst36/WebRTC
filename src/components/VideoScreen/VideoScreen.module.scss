@@ -16,15 +16,60 @@
     height: 100%;
   }
 
-  .muteButton {
+  .callControls {
     position: absolute;
-    left: 20px;
-    bottom: 60px;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    column-gap: 24px;
+    transform: translateX(-50%);
+    left: 50%;
+    bottom: 0;
   }
 
-  .shareButton {
+  .button {
+    position: relative;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--primary);
+    cursor: pointer;
+    transition: 0.2s background-color ease;
+
+    &:hover {
+      background-color: var(--primary-darker);
+    }
+
+    & > svg {
+      width: 28px;
+      height: 28px;
+    }
+  }
+
+  .turnedOff {
+      border: 2px solid var(--attention);
+  }
+
+  .crossIcon {
     position: absolute;
-    left: 20px;
-    bottom: 120px;
+    transform: translate(-50%, -50%) rotate(45deg);
+    left: 50%;
+    top: 50%;
+    width: 2px;
+    height: 80%;
+    background-color: white;
+    z-index: 1;
+  }
+
+  .endCall {
+    background-color: var(--attention);
+    transition: 0.2s background-color ease;
+
+    &:hover {
+      background-color: var(--attention-darker);
+    }
   }
 }

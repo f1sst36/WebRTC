@@ -1,37 +1,58 @@
 .chat {
   display: grid;
   grid-template-rows: 1fr auto;
+  background-color: var(--dark-2);
+  border-top-right-radius: 24px;
+  border-bottom-right-radius: 24px;
 
   .messages {
     display: flex;
     flex-direction: column-reverse;
     gap: 8px;
     list-style-type: none;
-    padding: unset;
     margin: unset;
     height: 100%;
     overflow-y: auto;
     width: 100%;
+    padding: 8px;
 
     .message {
       padding: 10px;
       color: white;
-      background-color: cornflowerblue;
+      background-color: var(--primary);
       border-radius: 8px;
     }
   }
 
   .sendingForm {
-    display: flex;
-    grid-template-columns: 2fr 1fr;
+    display: grid;
+    grid-template-columns: 1fr 60px;
+    height: 60px;
     gap: 6px;
     margin-top: 24px;
+    padding: 8px;
 
     .textfield {
-      border: 1px solid slategray;
+      border: unset;
       border-radius: 8px;
       padding: 4px 8px;
       outline: none;
+      background-color: var(--black);
+      color: white;
+    }
+
+    button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      padding: 4px;
+      border: unset;
+
+      & > svg {
+        width: 24px;
+        height: 24px;
+      }
     }
   }
 }

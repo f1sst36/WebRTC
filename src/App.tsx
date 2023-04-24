@@ -10,6 +10,8 @@ function App() {
 	const [messages, setMessages] = useState<Message[]>([]);
 	const [localStream, setLocalStream] = useState<MediaStream | null>(null);
 	const [remoteStreams, setRemoteStreams] = useState<MediaStream[]>([]);
+	const [isSharedDisplay, setIsSharedDisplay] = useState<boolean>(false)
+	const [isTurnedOnWebCamera, setIsTurnedOnWebCamera] = useState<boolean>(false)
 
 	const [rooms, setRooms] = useState<number[]>([]);
 	const {
@@ -91,16 +93,31 @@ function App() {
 	const startChatting = async () => {
 		const stream = await navigator.mediaDevices.getUserMedia({
 			audio: true,
-			video: {
-				width: 1280,
-				height: 720,
-			},
+			// video: {
+			// 	width: 1280,
+			// 	height: 720,
+			// },
 		});
 
 		initPeerConnection();
 		addTracksToStream(stream);
 		setLocalStream(stream);
 	};
+
+	const turnOnWebCamera = async () => {
+		const stream = await navigator.mediaDevices.getUserMedia({
+			audio: true,
+			video: {
+				width: 1280,
+				height: 720,
+			},
+		});
+
+		// const [screenShareTrack] = stream.getVideoTracks();
+		// await replaceTrack(screenShareTrack);
+		// setLocalStream(stream);
+		setIsTurnedOnWebCamera(true)
+	}
 
 	const shareDisplay = async () => {
 		const stream = await navigator.mediaDevices.getDisplayMedia({
@@ -111,6 +128,7 @@ function App() {
 		const [screenShareTrack] = stream.getVideoTracks();
 		await replaceTrack(screenShareTrack);
 		setLocalStream(stream);
+		setIsSharedDisplay(true)
 	};
 
 	return (
@@ -122,6 +140,9 @@ function App() {
 					sendMessageToChat={sendMessageToChat}
 					messages={messages}
 					shareDisplay={shareDisplay}
+					isSharedDisplay={isSharedDisplay}
+					isTurnedOnWebCamera={isTurnedOnWebCamera}
+					turnOnWebCamera={turnOnWebCamera}
 				/>
 			)}
 			<ul>
