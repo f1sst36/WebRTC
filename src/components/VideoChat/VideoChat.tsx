@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Message } from "../../types/chat";
 import { Chat } from "../Chat/Chat";
 import { VideoScreen } from "../VideoScreen/VideoScreen";
@@ -9,22 +9,28 @@ type Props = {
 	remoteStreams: MediaStream[];
 	sendMessageToChat: (messageText: string) => any;
 	messages: Message[];
+	shareDisplay: () => Promise<any>
 };
 
-export const VideoChat = ({ localStream, remoteStreams, sendMessageToChat, messages }: Props) => {
-	const [isMuted, setIsMuted] = useState<boolean>(!localStream.getAudioTracks()[0].enabled);
+export const VideoChat = ({ localStream, remoteStreams, sendMessageToChat, messages, shareDisplay }: Props) => {
+	const [isMuted, setIsMuted] = useState<boolean>(true);
 
-	const muteMicro = () => {
-		localStream.getAudioTracks()[0].enabled = false;
-		setIsMuted(true);
+	useEffect(() => {
+		setIsMutedMicro(true);
+	}, []);
+
+	const setIsMutedMicro = (state: boolean) => {
+		try {
+			localStream.getAudioTracks()[0].enabled = !state;
+		} catch (e) {
+			console.log('No audio track');
+		}
+		setIsMuted(state);
 	};
 
-	const unmuteMicro = () => {
-		localStream.getAudioTracks()[0].enabled = true;
-		setIsMuted(false);
-	};
-
-	const [microStateText, changeMicroState] = isMuted ? ["Unmute micro", unmuteMicro] : ["Mute micro", muteMicro];
+	const [microStateText, changeMicroState] = isMuted
+		? ["Unmute micro", () => setIsMutedMicro(false)]
+		: ["Mute micro", () => setIsMutedMicro(true)];
 
 	return (
 		<div className={styles.videoChat}>
@@ -33,6 +39,7 @@ export const VideoChat = ({ localStream, remoteStreams, sendMessageToChat, messa
 				remoteStreams={remoteStreams}
 				microStateText={microStateText}
 				changeMicroState={changeMicroState}
+				shareDisplay={shareDisplay}
 			/>
 			<Chat messages={messages} sendMessage={sendMessageToChat} />
 		</div>

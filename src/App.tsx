@@ -1,10 +1,8 @@
 import { socket } from "./services/socket";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { WebRTCActions } from "./enums/webRTC";
 import { useWebRTC } from "./hooks/useWebRTC";
-import { Chat } from "./components/Chat/Chat";
 import { Message } from "./types/chat";
-import { VideoScreen } from "./components/VideoScreen/VideoScreen";
 import { VideoChat } from "./components/VideoChat/VideoChat";
 
 function App() {
@@ -22,6 +20,7 @@ function App() {
 		closeConnection,
 		setIceCandidate,
 		addTracksToStream,
+		replaceTrack,
 	} = useWebRTC({
 		onOpen: async (_peerConnection) => {
 			console.log("WEBRTC IS OPENED");
@@ -32,6 +31,8 @@ function App() {
 		},
 		onMessage: (e) => setMessages((p) => [JSON.parse(e.data), ...p]),
 		onIceCandidate: async (e) => {
+			console.log("onIceCandidate", e);
+
 			if (e.candidate) {
 				setIceCandidates([...iceCandidates, e.candidate]);
 				socket.emit(WebRTCActions.ICE_CANDIDATE, JSON.stringify(e.candidate));
@@ -42,10 +43,6 @@ function App() {
 	useEffect(() => {
 		socket.io.on("open", () => {
 			console.log("socket is open");
-		});
-
-		socket.on(WebRTCActions.ROOM_HAS_CREATED, (data) => {
-			setRooms((p) => [...p, data]);
 		});
 
 		socket.on(WebRTCActions.ALL_ROOMS, (data) => {
@@ -68,10 +65,6 @@ function App() {
 			closeConnection();
 		};
 	}, []);
-
-	const createNewRoom = () => {
-		socket.emit(WebRTCActions.CREATE_NEW_ROOM);
-	};
 
 	const joinToRoom = async () => {
 		try {
@@ -109,14 +102,28 @@ function App() {
 		setLocalStream(stream);
 	};
 
+	const shareDisplay = async () => {
+		const stream = await navigator.mediaDevices.getDisplayMedia({
+			video: true,
+			audio: false,
+		});
+
+		const [screenShareTrack] = stream.getVideoTracks();
+		await replaceTrack(screenShareTrack);
+		setLocalStream(stream);
+	};
+
 	return (
 		<div>
-			{localStream && <VideoChat
-				localStream={localStream}
-				remoteStreams={remoteStreams}
-				sendMessageToChat={sendMessageToChat}
-				messages={messages}
-			/>}
+			{localStream && (
+				<VideoChat
+					localStream={localStream}
+					remoteStreams={remoteStreams}
+					sendMessageToChat={sendMessageToChat}
+					messages={messages}
+					shareDisplay={shareDisplay}
+				/>
+			)}
 			<ul>
 				{rooms.map((room) => {
 					return (
@@ -133,7 +140,6 @@ function App() {
 				})}
 			</ul>
 			<button onClick={startChatting}>Start chatting</button>
-			<button onClick={createNewRoom}>Create new room</button>
 		</div>
 	);
 }

@@ -1,7 +1,9 @@
 import { io } from "socket.io-client";
 
-export const socket = io(":3000", {
+const url = ':3000'
+
+export const socket = io(url, {
   forceNew: true,
-  timeout : 70_000,
+  timeout : 30_000,
   transports : ["websocket"]
 });

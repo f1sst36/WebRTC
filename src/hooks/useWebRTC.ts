@@ -17,7 +17,7 @@ type Params = {
 
 export const useWebRTC = (params: Params) => {
     const peerConnection = useRef<RTCPeerConnection | null>(null)
-    // const remotePeerConnections = useRef<RTCPeerConnection[]>([])
+    // const resolvedPeerConnections = useRef<RTCPeerConnection[]>([])
     const dataChannel = useRef<RTCDataChannel | null>(null)
     const isConnected = useRef<boolean>(false)
 
@@ -32,7 +32,9 @@ export const useWebRTC = (params: Params) => {
     }
 
     const initPeerConnection = () => {
-        
+        // if(isConnected.current) {
+        //     return
+        // }
         // const iceServers = [{ urls: 'stun:stun.l.google.com:19302' }]
         peerConnection.current = new RTCPeerConnection(params.peerConnectionConfig)
         dataChannel.current = getPeerConnection().createDataChannel(params.dataChannelLabel ?? 'data-channel-label')
@@ -51,7 +53,6 @@ export const useWebRTC = (params: Params) => {
         getPeerConnection().ontrack = e => {
             params.onTrack(e)
         }
-        console.log('initConnection');
 
         isConnected.current = true
     }
@@ -59,7 +60,7 @@ export const useWebRTC = (params: Params) => {
     const sendOffer = async (cb: (offer: RTCSessionDescriptionInit) => Promise<RTCSessionDescriptionInit>) => {
         if (!isConnected.current) {
             return
-        } 
+        }
 
         const offer = await getPeerConnection().createOffer()
         await getPeerConnection().setLocalDescription(offer)
@@ -85,6 +86,8 @@ export const useWebRTC = (params: Params) => {
     }
 
     const sendMessage = (message: string) => {
+        console.log(getPeerConnection())
+        
         getDataChannel().send(message)
     }
 
@@ -94,10 +97,19 @@ export const useWebRTC = (params: Params) => {
 
     const addTracksToStream = (stream: MediaStream) => {
         stream.getTracks().forEach(track => {
-            console.log('TRACK', track)
             getPeerConnection().addTrack(track, stream)
         })
     }
+
+    const replaceTrack = async (newTrack: MediaStreamTrack) => {
+        console.log(getPeerConnection().getSenders());
+        // TODO - refactor it
+        const [,sender] = getPeerConnection().getSenders()
+        await sender.replaceTrack(newTrack)
+    }
+
+    // Нужно реализовать хук так, чтобы можно было удобно манипулировать 
+    // видео и аудио треками на большом кол-ве пир соединений
 
     return {
         initPeerConnection,
@@ -106,6 +118,7 @@ export const useWebRTC = (params: Params) => {
         closeConnection,
         sendMessage,
         setIceCandidate,
-        addTracksToStream
+        addTracksToStream,
+        replaceTrack
     } as const
 }

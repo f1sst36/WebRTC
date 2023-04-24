@@ -7,8 +7,6 @@ const server = createServer(app)
 const io = new Server(server)
 
 const WebRTCActions = Object.freeze({
-    CREATE_NEW_ROOM: 'createNewRoom',
-    ROOM_HAS_CREATED: 'roomHasCreated',
     ALL_ROOMS: 'allRooms',
     JOIN_TO_CHANNEL: 'joinToChannel',
     USER_WANT_TO_JOIN: 'userWantToJoin',
@@ -20,35 +18,19 @@ const WebRTCActions = Object.freeze({
 
 const database = {
     rooms: [1, 2, 3],
-    usersOnline: {}
+    usersOnline: []
 }
 
 io.on('connection', (socket) => {
     console.log('connection is success')
-    io.emit(WebRTCActions.ALL_ROOMS, database.rooms)
+    database.usersOnline.push(socket.id)
 
-    socket.on(WebRTCActions.CREATE_NEW_ROOM, () => {
-        console.log(WebRTCActions.CREATE_NEW_ROOM)
-        const roomId = Math.random()
-        database.rooms.push(roomId)
-        io.emit(WebRTCActions.ROOM_HAS_CREATED, roomId)
-    })
+    io.emit(WebRTCActions.ALL_ROOMS, database.rooms)
 
     socket.on(WebRTCActions.JOIN_TO_CHANNEL, (offerDescription, socketId) => {
         console.log('JOIN_TO_CHANNEL socketId')
-        if(!database.usersOnline.hasOwnProperty(socketId)) {
-            database.usersOnline[socketId] = {
-                offerDescription
-            }
-        }
-
         socket.broadcast.emit(WebRTCActions.USER_WANT_TO_JOIN, offerDescription)
     })
-    //
-    // socket.on('answer', (data) => {
-    //     console.log('answer event')
-    //     socket.broadcast.emit('answer2', data)
-    // })
 
     socket.on(WebRTCActions.TO_JOINED_USER, (answer) => {
         // должен отсылаться только одному юзеру (который заходит в чат)
@@ -59,9 +41,12 @@ io.on('connection', (socket) => {
     socket.on(WebRTCActions.ICE_CANDIDATE, (data) => {
         socket.broadcast.emit(WebRTCActions.NEW_ICE_CANDIDATE, data)
     })
+
+    socket.on('disconnect', () => {
+        database.usersOnline = database.usersOnline.filter((id) => id !== socket.id)
+        console.log('disconnect', database.usersOnline)
+    })
 })
-
-
 
 server.listen(3000, () => {
     console.log('Server is working')
