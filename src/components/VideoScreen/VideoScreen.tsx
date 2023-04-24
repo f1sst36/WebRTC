@@ -1,20 +1,16 @@
 import styles from './VideoScreen.module.scss'
-import {useState} from "react";
 
 type Props = {
     localStream: MediaStream,
-    remoteStreams: MediaStream[]
+    remoteStreams: MediaStream[],
+    microStateText: string, 
+    changeMicroState: () => any
 }
-export const VideoScreen = ({localStream, remoteStreams}: Props) => {
-    const isEnabledMicro = localStream.getAudioTracks()[0].enabled
-    const [isMuted, setIsMuted] = useState<boolean>(!isEnabledMicro)
-    const offOnMicro = () => {
-        localStream.getAudioTracks()[0].enabled = !isEnabledMicro
-        setIsMuted(localStream.getAudioTracks()[0].enabled)
-    }
+export const VideoScreen = ({localStream, remoteStreams, microStateText, changeMicroState}: Props) => {
     const setStream = (videoElement: HTMLVideoElement, stream: MediaStream) => {
         videoElement.srcObject = stream
     }
+
 
     return <div className={styles.screen}>
         <video
@@ -36,6 +32,6 @@ export const VideoScreen = ({localStream, remoteStreams}: Props) => {
             }}
             autoPlay
         ></video>
-        <button onClick={offOnMicro}>{isMuted ? 'Unmute micro' : 'Mute micro'}</button>
+        <button className={styles.muteButton} onClick={changeMicroState}>{microStateText}</button>
     </div>
 }

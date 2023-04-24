@@ -1,17 +1,25 @@
-import {useEffect, useRef} from "react";
+import {useRef} from "react";
+
+export enum ConnectionRole {
+    SENDER,
+    RECEIVER
+}
 
 type Params = {
-    onOpen: (peerConnection: RTCPeerConnection) => any,
-    onMessage: (e: MessageEvent<any>) => any,
-    onIceCandidate: (e: RTCPeerConnectionIceEvent, sessionDescription: RTCSessionDescription | null) => any,
+    onOpen: (peerConnection: RTCPeerConnection) => any
+    onMessage: (e: MessageEvent<any>) => any
+    onIceCandidate: (e: RTCPeerConnectionIceEvent) => any
     onTrack: (e: RTCTrackEvent) => any
+    onAfterInitConnection?: (peerConnection: RTCPeerConnection) => any
     dataChannelLabel?: string,
+    peerConnectionConfig?: RTCConfiguration
 }
 
 export const useWebRTC = (params: Params) => {
     const peerConnection = useRef<RTCPeerConnection | null>(null)
-    const remotePeerConnections = useRef<RTCPeerConnection[]>([])
+    // const remotePeerConnections = useRef<RTCPeerConnection[]>([])
     const dataChannel = useRef<RTCDataChannel | null>(null)
+    const isConnected = useRef<boolean>(false)
 
     const getPeerConnection = (): RTCPeerConnection => {
         if (!peerConnection.current) throw new Error('Peer connection is null')
@@ -23,38 +31,52 @@ export const useWebRTC = (params: Params) => {
         return dataChannel.current
     }
 
-    useEffect(() => {
-        const iceServers = [{ urls: 'stun:stun.l.google.com:19302' }]
-        peerConnection.current = new RTCPeerConnection({iceServers})
+    const initPeerConnection = () => {
+        
+        // const iceServers = [{ urls: 'stun:stun.l.google.com:19302' }]
+        peerConnection.current = new RTCPeerConnection(params.peerConnectionConfig)
         dataChannel.current = getPeerConnection().createDataChannel(params.dataChannelLabel ?? 'data-channel-label')
-
-        getDataChannel().onopen = () => params.onOpen(getPeerConnection())
-        getDataChannel().onmessage = e => params.onMessage(e)
+        
         getPeerConnection().onicecandidate = e => {
-            params.onIceCandidate(e, getPeerConnection().localDescription)
+            params.onIceCandidate(e)
         }
+
         getPeerConnection().ondatachannel = e => {
             dataChannel.current = e.channel
         }
+
+        getDataChannel().onopen = () => params.onOpen(getPeerConnection())
+        getDataChannel().onmessage = e => params.onMessage(e)
+
         getPeerConnection().ontrack = e => {
             params.onTrack(e)
         }
-    }, [])
+        console.log('initConnection');
 
-    const setOfferToLocalDescription = async (): Promise<RTCSessionDescriptionInit> => {
+        isConnected.current = true
+    }
+
+    const sendOffer = async (cb: (offer: RTCSessionDescriptionInit) => Promise<RTCSessionDescriptionInit>) => {
+        if (!isConnected.current) {
+            return
+        } 
+
         const offer = await getPeerConnection().createOffer()
         await getPeerConnection().setLocalDescription(offer)
-        return offer
+        const answer = await cb(offer)
+        
+        return await getPeerConnection().setRemoteDescription(answer)
     }
 
-    const setAnswerToLocalDescription = async () => {
+    const sendAnswer = async (offer: RTCSessionDescriptionInit, cb: (answer: RTCSessionDescriptionInit) => any) => {
+        if (!isConnected.current) {
+            return
+        }
+
+        await getPeerConnection().setRemoteDescription(offer)
         const answer = await getPeerConnection().createAnswer()
         await getPeerConnection().setLocalDescription(answer)
-        return answer
-    }
-
-    const setRemoteDescription = async (sessionDescription: RTCSessionDescription) => {
-        return await getPeerConnection().setRemoteDescription(sessionDescription)
+        await cb(answer)
     }
 
     const closeConnection = () => {
@@ -70,12 +92,20 @@ export const useWebRTC = (params: Params) => {
         await getPeerConnection().addIceCandidate(new RTCIceCandidate(candidate))
     }
 
+    const addTracksToStream = (stream: MediaStream) => {
+        stream.getTracks().forEach(track => {
+            console.log('TRACK', track)
+            getPeerConnection().addTrack(track, stream)
+        })
+    }
+
     return {
-        setOfferToLocalDescription,
-        setAnswerToLocalDescription,
-        setRemoteDescription,
+        initPeerConnection,
+        sendOffer,
+        sendAnswer,
         closeConnection,
         sendMessage,
-        setIceCandidate
+        setIceCandidate,
+        addTracksToStream
     } as const
 }

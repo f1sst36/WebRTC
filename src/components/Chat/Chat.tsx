@@ -28,7 +28,7 @@ export const Chat = ({messages, sendMessage}: Props) => {
                 return <li key={message.id} className={styles.message}>{message.text}</li>
             })}
         </ul>
-        <form onSubmit={sendMessageWrapper}>
+        <form className={styles.sendingForm} onSubmit={sendMessageWrapper}>
              <input
                  className={styles.textfield}
                  value={messageText}

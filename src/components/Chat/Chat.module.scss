@@ -1,4 +1,7 @@
 .chat {
+  display: grid;
+  grid-template-rows: 1fr auto;
+
   .messages {
     display: flex;
     flex-direction: column-reverse;
@@ -6,12 +9,29 @@
     list-style-type: none;
     padding: unset;
     margin: unset;
-    max-height: 400px;
+    height: 100%;
     overflow-y: auto;
+    width: 100%;
 
     .message {
       padding: 10px;
-      background-color: aliceblue;
+      color: white;
+      background-color: cornflowerblue;
+      border-radius: 8px;
+    }
+  }
+
+  .sendingForm {
+    display: flex;
+    grid-template-columns: 2fr 1fr;
+    gap: 6px;
+    margin-top: 24px;
+
+    .textfield {
+      border: 1px solid slategray;
+      border-radius: 8px;
+      padding: 4px 8px;
+      outline: none;
     }
   }
 }
