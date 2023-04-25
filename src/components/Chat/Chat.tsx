@@ -1,23 +1,21 @@
 import styles from './Chat.module.scss'
-import React, {FormEventHandler, useState} from "react";
+import React, {FormEventHandler, useContext, useState} from "react";
 import {Message} from "../../types/chat";
 import {ReactComponent as SendSVG} from "../../icons/send.svg";
+import { StoreContext } from '../../store';
 
-type Props = {
-    messages: Message[],
-    sendMessage: (messageText: string) => any
-}
-export const Chat = ({messages, sendMessage}: Props) => {
+export const Chat = () => {
+	const { sendMessageToChat, messages } = useContext(StoreContext);
     const [messageText, setMessageText] = useState<string>('')
 
     const sendMessageWrapper: FormEventHandler<HTMLFormElement> = (e) => {
         e.preventDefault()
-        if(messageText === '') {
+        if(messageText === '' || !sendMessageToChat) {
             return
         }
 
         try {
-            sendMessage(JSON.stringify({
+            sendMessageToChat(JSON.stringify({
                 id: Math.random(),
                 text: messageText
             }))

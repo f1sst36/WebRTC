@@ -7,7 +7,6 @@ const server = createServer(app)
 const io = new Server(server)
 
 const WebRTCActions = Object.freeze({
-    ALL_ROOMS: 'allRooms',
     JOIN_TO_CHANNEL: 'joinToChannel',
     USER_WANT_TO_JOIN: 'userWantToJoin',
     TO_JOINED_USER: 'TO_JOINED_USER',
@@ -17,15 +16,12 @@ const WebRTCActions = Object.freeze({
 })
 
 const database = {
-    rooms: [1, 2, 3],
     usersOnline: []
 }
 
 io.on('connection', (socket) => {
     console.log('connection is success')
     database.usersOnline.push(socket.id)
-
-    io.emit(WebRTCActions.ALL_ROOMS, database.rooms)
 
     socket.on(WebRTCActions.JOIN_TO_CHANNEL, (offerDescription, socketId) => {
         console.log('JOIN_TO_CHANNEL socketId')

@@ -53,6 +53,7 @@ button {
   background-color: var(--primary);
   cursor: pointer;
   outline: unset;
+  border: unset;
   color: white;
   transition: 0.2s all ease;
 }
