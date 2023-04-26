@@ -13,42 +13,42 @@ function App() {
 	const [remoteStreams, setRemoteStreams] = useState<MediaStream[]>([]);
 	const [isSharedDisplay, setIsSharedDisplay] = useState<boolean>(false);
 	const [isTurnedOnWebCamera, setIsTurnedOnWebCamera] = useState<boolean>(false);
+	const [joinedUsersCount, setJoinedUsersCount] = useState<number | null>(null);
 
-	const {
-		initPeerConnection,
-		sendOffer,
-		sendAnswer,
-		sendMessage,
-		closeConnection,
-		setIceCandidate,
-		addTracksToStream,
-		replaceTrack,
-	} = useWebRTC({
-		onOpen: async (_peerConnection) => {
-			console.log("WEBRTC IS OPENED");
-		},
-		onTrack: (e) => {
-			e.streams.forEach((stream) => {
-				if (!remoteStreams.find((remoteStream) => remoteStream.id === stream.id)) {
-					setRemoteStreams([...remoteStreams, stream]);
+	const { sendOffer, sendAnswer, sendMessage, closeConnection, setIceCandidate, addTracksToStream, replaceTrack } =
+		useWebRTC({
+			onOpen: async (_peerConnection) => {
+				console.log("WEBRTC IS OPENED");
+				// socket.emit(WebRTCActions.USER_JOINED);
+			},
+			onTrack: (e) => {
+				console.log("onTrack");
+
+				e.streams.forEach((stream) => {
+					if (!remoteStreams.find((remoteStream) => remoteStream.id === stream.id)) {
+						setRemoteStreams([...remoteStreams, stream]);
+					}
+				});
+			},
+			onMessage: (e) => setMessages((p) => [JSON.parse(e.data), ...p]),
+			onIceCandidate: async (e) => {
+				if (e.candidate) {
+					console.log("onIceCandidate", e);
+
+					setIceCandidates([...iceCandidates, e.candidate]);
+					socket.emit(WebRTCActions.ICE_CANDIDATE, JSON.stringify(e.candidate));
 				}
-			});
-		},
-		onMessage: (e) => setMessages((p) => [JSON.parse(e.data), ...p]),
-		onIceCandidate: async (e) => {
-			if (e.candidate) {
-				console.log("onIceCandidate", e);
-
-				setIceCandidates([...iceCandidates, e.candidate]);
-				socket.emit(WebRTCActions.ICE_CANDIDATE, JSON.stringify(e.candidate));
-			}
-		},
-	});
+			},
+		});
 
 	useEffect(() => {
 		socket.io.on("open", () => {
 			console.log("socket is open");
 		});
+
+		// socket.on(WebRTCActions.SENDED_OFFER_TO_SERVER, () => {
+		// 	setConnection()
+		// })
 
 		socket.on(WebRTCActions.USER_WANT_TO_JOIN, async (offer) => {
 			console.log("USER_WANT_TO_JOIN");
@@ -58,30 +58,48 @@ function App() {
 		});
 
 		socket.on(WebRTCActions.NEW_ICE_CANDIDATE, async (data: string) => {
+			console.log("NEW_ICE_CANDIDATE");
+
 			const candidate = JSON.parse(data);
 			await setIceCandidate(candidate);
 		});
+
+		socket.on(WebRTCActions.JOINED_USERS_COUNT, (joinedUsersCount: number) => {
+			console.log('JOINED_USERS_COUNT', joinedUsersCount);
+
+			setJoinedUsersCount(joinedUsersCount);
+		});
+
+		startChatting();
 
 		return () => {
 			closeConnection();
 		};
 	}, []);
 
-	const joinToRoom = async () => {
+
+	const setConnection = async () => {
+		if (joinedUsersCount === null) {
+			alert("Something went wrong [joinToRoom]");
+			return;
+		}
 		try {
-			await sendOffer((offer) => {
+			await sendOffer(joinedUsersCount, (offers) => {
 				return new Promise((res) => {
-					socket.on(WebRTCActions.ANSWER_TO_NEW_USER, async (answer) => {
+					socket.on(WebRTCActions.ANSWERS_TO_NEW_USER, async (answers) => {
 						console.log("ANSWER_TO_NEW_USER");
-						res(answer);
+						res(answers);
 					});
-					socket.emit(WebRTCActions.JOIN_TO_CHANNEL, offer, socket.id);
+					socket.emit(WebRTCActions.JOIN_TO_CHANNEL, offers);
 				});
 			});
 		} catch (e) {
 			console.log(e);
 		}
-		socket.removeAllListeners(WebRTCActions.ANSWER_TO_NEW_USER);
+		if (localStream) {
+			addTracksToStream(localStream);
+		}
+		socket.removeAllListeners(WebRTCActions.ANSWERS_TO_NEW_USER);
 	};
 
 	const sendMessageToChat = (message: string) => {
@@ -90,6 +108,7 @@ function App() {
 	};
 
 	const startChatting = async () => {
+		socket.emit(WebRTCActions.JOIN)
 		const stream = await navigator.mediaDevices.getUserMedia({
 			audio: true,
 			video: {
@@ -98,11 +117,15 @@ function App() {
 			},
 		});
 
-		initPeerConnection();
-		addTracksToStream(stream);
+		// initPeerConnection();
+		// addTracksToStream(stream);
 		setLocalStream(stream);
 		setIsTurnedOnWebCamera(true);
 	};
+
+	// const start = () => {
+	// 	socket.emit(WebRTCActions.START)
+	// }
 
 	const turnOnWebCamera = () => {
 		if (!localStream) {
@@ -110,7 +133,7 @@ function App() {
 		}
 		const [videoTrack] = localStream.getVideoTracks();
 
-		videoTrack.enabled = true
+		videoTrack.enabled = true;
 		setIsTurnedOnWebCamera(true);
 	};
 
@@ -120,9 +143,9 @@ function App() {
 		}
 		const [videoTrack] = localStream.getVideoTracks();
 
-		videoTrack.enabled = false
+		videoTrack.enabled = false;
 		setIsTurnedOnWebCamera(false);
-	}
+	};
 
 	const shareDisplay = async () => {
 		const stream = await navigator.mediaDevices.getDisplayMedia({
@@ -147,14 +170,14 @@ function App() {
 	};
 
 	const endCall = () => {
-		closeConnection()
-		setLocalStream(null)
-		setRemoteStreams([])
-		setMessages([])
-		setIceCandidates([])
-		setIsSharedDisplay(false)
-		setIsTurnedOnWebCamera(false)
-	}
+		closeConnection();
+		setLocalStream(null);
+		setRemoteStreams([]);
+		setMessages([]);
+		setIceCandidates([]);
+		setIsSharedDisplay(false);
+		setIsTurnedOnWebCamera(false);
+	};
 
 	return (
 		<StoreProvider
@@ -169,13 +192,14 @@ function App() {
 				isTurnedOnWebCamera,
 				turnOnWebCamera,
 				turnOffWebCamera,
-				endCall
+				endCall,
 			}}
 		>
 			<div>
 				{localStream && <VideoChat />}
-				<button onClick={joinToRoom}>Join</button>
-				<button onClick={startChatting}>Start chatting</button>
+				{/* <button onClick={startChatting}>Start chatting</button> */}
+				{/* <button onClick={start}>Start</button> */}
+				<button onClick={setConnection}>Set connection</button>
 				<ul>
 					{iceCandidates.map((candidate, index) => {
 						return <li key={index}>{candidate.candidate}</li>;

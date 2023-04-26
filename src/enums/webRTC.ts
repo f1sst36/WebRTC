@@ -1,13 +1,26 @@
 export enum WebRTCActions {
-    JOIN_TO_CHANNEL = 'joinToChannel',
-    USER_WANT_TO_JOIN = 'userWantToJoin',
-    TO_JOINED_USER = 'TO_JOINED_USER',
-    ANSWER_TO_NEW_USER = 'ANSWER_TO_NEW_USER',
-    NEW_ICE_CANDIDATE = 'new-ice-candidate',
-    ICE_CANDIDATE = 'ice-candidate'
+	// START = "START",
+	// SEND_OFFER_TO_SERVER = "SEND_OFFER_TO_SERVER",
+	// SENDED_OFFER_TO_SERVER = "SENDED_OFFER_TO_SERVER",
+	// NEW_OFFER_TO_CLIENT = "NEW_OFFER_TO_CLIENT",
+	// SENDED_ANSWER_TO_SERVER = "SENDED_ANSWER_TO_SERVER",
+	// NEW_ANSWER_TO_CLEINT = "NEW_ANSWER_TO_CLEINT",
+	// ICE_CANDIDATE = "ICE_CANDIDATE",
+	// NEW_ICE_CANDIDATE = "NEW_ICE_CANDIDATE",
+	// JOINED_USERS_COUNT = "JOINED_USERS_COUNT"
+
+	JOIN_TO_CHANNEL = "joinToChannel",
+	USER_WANT_TO_JOIN = "userWantToJoin",
+	TO_JOINED_USER = "TO_JOINED_USER",
+	ANSWERS_TO_NEW_USER = "ANSWERS_TO_NEW_USER",
+	NEW_ICE_CANDIDATE = "new-ice-candidate",
+	ICE_CANDIDATE = "ice-candidate",
+	USER_JOINED = "user-joined",
+	JOINED_USERS_COUNT = "joined-users-count",
+	JOIN = "join",
 }
 
 export enum TrackKind {
-    VIDEO = 'video',
-    AUDIO = 'audio'
+	VIDEO = "video",
+	AUDIO = "audio",
 }
